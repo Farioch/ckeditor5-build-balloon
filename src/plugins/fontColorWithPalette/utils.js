@@ -10,24 +10,9 @@
 import ColorTableView from './ui/colortableview';
 
 /**
- * The name of the font size plugin.
- */
-export const FONT_SIZE = 'fontSize';
-
-/**
- * The name of the font family plugin.
- */
-export const FONT_FAMILY = 'fontFamily';
-
-/**
  * The name of the font color plugin.
  */
 export const FONT_COLOR = 'fontColor';
-
-/**
- * The name of the font font background color plugin.
- */
-export const FONT_BACKGROUND_COLOR = 'fontBackgroundColor';
 
 /**
  * Builds a proper {@link module:engine/conversion/conversion~ConverterDefinition converter definition} out of input data.
@@ -69,7 +54,11 @@ export function buildDefinition( modelAttributeKey, options ) {
  * @return {String}
  */
 export function renderUpcastAttribute( styleAttr ) {
-	return viewElement => normalizeColorCode( viewElement.getStyle( styleAttr ) );
+	return viewElement => {
+		const color = normalizeColorCode( viewElement.getStyle( styleAttr ) );
+		const paletteId = viewElement.getAttribute( 'theme-palette' );
+		return { color, paletteId };
+	};
 }
 
 /**
@@ -82,9 +71,15 @@ export function renderUpcastAttribute( styleAttr ) {
  * @param {String} styleAttr
  */
 export function renderDowncastElement( styleAttr ) {
-	return ( modelAttributeValue, viewWriter ) => viewWriter.createAttributeElement( 'span', {
-		style: `${ styleAttr }:${ modelAttributeValue }`
-	} );
+	return ( modelAttributeValue, viewWriter ) => {
+		const color = modelAttributeValue && modelAttributeValue.color;
+		const paletteId = modelAttributeValue && modelAttributeValue.paletteId;
+		const config = { style: `${ styleAttr }:${ color }` };
+		if ( paletteId ) {
+			config[ 'theme-palette' ] = paletteId;
+		}
+		return viewWriter.createAttributeElement( 'span', config );
+	};
 }
 
 /**
@@ -100,6 +95,12 @@ export function normalizeColorOptions( options ) {
 		.filter( option => !!option );
 }
 
+export function normalizePaletteOptions( options ) {
+	return options
+		.map( normalizeSinglePaletteDefinition )
+		.filter( option => !!option );
+}
+
 /**
  * Helper that adds {@link module:font/ui/colortableview~ColorTableView} to a dropdown with proper initial values.
  *
@@ -111,9 +112,9 @@ export function normalizeColorOptions( options ) {
  * @param {String} config.removeButtonLabel The label for the button responsible for removing the color.
  * @returns {module:font/ui/colortableview~ColorTableView} The new color table view.
  */
-export function addColorTableToDropdown( { dropdownView, colors, columns, removeButtonLabel } ) {
+export function addColorTableToDropdown( { dropdownView, palette, colors, columns, removeButtonLabel } ) {
 	const locale = dropdownView.locale;
-	const colorTableView = new ColorTableView( locale, { colors, columns, removeButtonLabel } );
+	const colorTableView = new ColorTableView( locale, { palette, colors, columns, removeButtonLabel } );
 
 	dropdownView.colorTableView = colorTableView;
 	dropdownView.panelView.children.add( colorTableView );
@@ -206,4 +207,23 @@ function normalizeSingleColorDefinition( color ) {
 			}
 		};
 	}
+}
+
+function normalizeSinglePaletteDefinition( color ) {
+	return {
+		model: color.color.replace( / /g, '' ),
+		label: color.label || color.color,
+		hasBorder: color.hasBorder === undefined ? false : color.hasBorder,
+		paletteId: color.paletteId,
+		view: {
+			name: 'span',
+			attributes: {
+				'theme-palette': `${ color.paletteId }`
+			},
+			styles: {
+				color: `${ color.color }`
+			},
+			priority: 5
+		}
+	};
 }

@@ -39,6 +39,7 @@ export default class FontCommand extends Command {
 		 * @member {Boolean} module:font/fontcommand~FontCommand#attributeKey
 		 */
 		this.attributeKey = attributeKey;
+		this.set( 'paletteColor', undefined );
 	}
 
 	/**
@@ -48,7 +49,9 @@ export default class FontCommand extends Command {
 		const model = this.editor.model;
 		const doc = model.document;
 
-		this.value = doc.selection.getAttribute( this.attributeKey );
+		const attrValue = doc.selection.getAttribute( this.attributeKey );
+		this.value = attrValue && attrValue.color;
+		this.paletteColor = attrValue && attrValue.paletteId ? attrValue.color : undefined;
 		this.isEnabled = model.schema.checkAttributeInSelection( doc.selection, this.attributeKey );
 	}
 
@@ -66,7 +69,7 @@ export default class FontCommand extends Command {
 		const document = model.document;
 		const selection = document.selection;
 
-		const value = options.value;
+		const value = { color: options.value, paletteId: options.paletteId };
 
 		model.change( writer => {
 			if ( selection.isCollapsed ) {

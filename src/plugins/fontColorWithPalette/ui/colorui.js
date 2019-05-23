@@ -12,6 +12,7 @@ import { createDropdown } from '@ckeditor/ckeditor5-ui/src/dropdown/utils';
 import {
 	addColorTableToDropdown,
 	normalizeColorOptions,
+	normalizePaletteOptions,
 	getLocalizedColorOptions
 } from '../utils';
 
@@ -78,6 +79,7 @@ export default class ColorUI extends Plugin {
 		const t = editor.t;
 		const command = editor.commands.get( this.commandName );
 		const colorsConfig = normalizeColorOptions( editor.config.get( this.componentName ).colors );
+		const paletteColorConfig = normalizePaletteOptions( editor.config.get( this.componentName ).palette );
 		const localizedColors = getLocalizedColorOptions( editor, colorsConfig );
 
 		// Register the UI component.
@@ -85,6 +87,14 @@ export default class ColorUI extends Plugin {
 			const dropdownView = createDropdown( locale );
 			const colorTableView = addColorTableToDropdown( {
 				dropdownView,
+				palette: paletteColorConfig.map( option => ( {
+					label: option.label,
+					color: option.model,
+					paletteId: option.paletteId,
+					options: {
+						hasBorder: option.hasBorder
+					}
+				} ) ),
 				colors: localizedColors.map( option => ( {
 					label: option.label,
 					color: option.model,
@@ -97,6 +107,15 @@ export default class ColorUI extends Plugin {
 			} );
 
 			colorTableView.bind( 'selectedColor' ).to( command, 'value' );
+			colorTableView.bind( 'selectedPaletteColor' ).to( command, 'paletteColor' );
+
+			colorTableView.on( 'execute:color', ( evt, data ) => {
+				colorTableView.fire( 'execute', data );
+			} );
+			colorTableView.on( 'execute:paletteColor', ( evt, data ) => {
+				const paletteColor = paletteColorConfig.find( option => option.model === data.value );
+				colorTableView.fire( 'execute', { value: paletteColor.model, paletteId: paletteColor.paletteId } );
+			} );
 
 			dropdownView.buttonView.set( {
 				label: this.dropdownLabel,

@@ -92,8 +92,40 @@ export default class FontColorEditing extends Plugin {
 					label: 'Purple'
 				}
 			],
+			palette: [
+				{
+					color: 'hsl(0, 0%, 0%)',
+					label: 'Black',
+					paletteId: '0'
+				},
+				{
+					color: 'hsl(0, 0%, 30%)',
+					label: 'Dim grey',
+					paletteId: '1'
+				},
+				{
+					color: 'hsl(0, 0%, 60%)',
+					label: 'Grey',
+					paletteId: '2'
+				},
+				{
+					color: 'hsl(0, 0%, 90%)',
+					label: 'Light grey',
+					paletteId: '3'
+				},
+				{
+					color: 'hsl(0, 0%, 100%)',
+					label: 'White',
+					paletteId: '4',
+					hasBorder: true
+				}
+			],
 			columns: 5
 		} );
+	}
+
+	init() {
+		const editor = this.editor;
 
 		editor.conversion.for( 'upcast' ).elementToAttribute( {
 			view: {

@@ -14,7 +14,7 @@ import FocusTracker from '@ckeditor/ckeditor5-utils/src/focustracker';
 import FocusCycler from '@ckeditor/ckeditor5-ui/src/focuscycler';
 import KeystrokeHandler from '@ckeditor/ckeditor5-utils/src/keystrokehandler';
 import removeButtonIcon from '@ckeditor/ckeditor5-core/theme/icons/eraser.svg';
-import '../../theme/fontcolor.css';
+import '../theme/fontcolor.css';
 
 /**
  * A class which represents a view with the following sub–components:
@@ -35,7 +35,7 @@ export default class ColorTableView extends View {
 	 * @param {Number} config.columns The number of columns in the color grid.
 	 * @param {String} config.removeButtonLabel The label of the button responsible for removing the color.
 	 */
-	constructor( locale, { colors, columns, removeButtonLabel } ) {
+	constructor( locale, { palette, colors, columns, removeButtonLabel } ) {
 		super( locale );
 
 		/**
@@ -52,6 +52,7 @@ export default class ColorTableView extends View {
 		 * @type {Arrray.<module:ui/colorgrid/colorgrid~ColorDefinition>}
 		 */
 		this.colorDefinitions = colors;
+		this.paletteColorDefinitions = palette;
 
 		/**
 		 * Tracks information about DOM focus in the list.
@@ -75,6 +76,8 @@ export default class ColorTableView extends View {
 		 * @type {String}
 		 */
 		this.set( 'selectedColor' );
+
+		this.set( 'selectedPaletteColor' );
 
 		/**
 		 * The label of the button responsible for removing color attributes.
@@ -121,8 +124,18 @@ export default class ColorTableView extends View {
 			children: this.items
 		} );
 
-		this.items.add( this.removeColorButton() );
-		this.items.add( this.createStaticColorTable() );
+		this.colorsTable = this.createStaticColorTable();
+		this.paletteColorsTable = this.createStaticPaletteTable();
+
+		this.viewItems = this.createCollection();
+
+		this.viewItems.add( this.removeColorButton() );
+		this.viewItems.add( this.changeModeButton() );
+		this.viewItems.add( this.colorsTable );
+
+		this.items.bindTo( this.viewItems ).using( item => item );
+
+		this.isPaletteMode = false;
 	}
 
 	/**
@@ -148,6 +161,33 @@ export default class ColorTableView extends View {
 		return buttonView;
 	}
 
+	changeModeButton() {
+		const buttonView = new ButtonView();
+
+		buttonView.set( {
+			withText: true,
+			tooltip: false,
+			label: 'change mode'
+		} );
+
+		buttonView.class = 'ck-color-table__remove-color';
+		buttonView.on( 'execute', () => {
+			this.isPaletteMode = !this.isPaletteMode;
+			this.updateItems();
+		} );
+
+		return buttonView;
+	}
+
+	updateItems() {
+		this.viewItems.remove( this.viewItems.last );
+		if ( this.isPaletteMode ) {
+			this.viewItems.add( this.paletteColorsTable );
+		} else {
+			this.viewItems.add( this.colorsTable );
+		}
+	}
+
 	/**
 	 * Creates a static color table grid based on the editor configuration.
 	 *
@@ -159,8 +199,24 @@ export default class ColorTableView extends View {
 			columns: this.columns
 		} );
 
-		colorGrid.delegate( 'execute' ).to( this );
+		colorGrid.on( 'execute', ( evt, data ) => {
+			this.fire( 'execute:color', data );
+		} );
 		colorGrid.bind( 'selectedColor' ).to( this );
+
+		return colorGrid;
+	}
+
+	createStaticPaletteTable() {
+		const colorGrid = new ColorGridView( this.locale, {
+			colorDefinitions: this.paletteColorDefinitions,
+			columns: this.columns
+		} );
+
+		colorGrid.on( 'execute', ( evt, data ) => {
+			this.fire( 'execute:paletteColor', data );
+		} );
+		colorGrid.bind( 'selectedColor' ).to( this, 'selectedPaletteColor' );
 
 		return colorGrid;
 	}
